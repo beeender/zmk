@@ -13,7 +13,7 @@ properties:
     required: true
   col-gpios:
     type: phandle-array
-    required: true
+    required: false
   debounce-period:
     type: int
     required: false

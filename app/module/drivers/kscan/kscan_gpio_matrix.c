@@ -10,6 +10,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/kscan.h>
+#include <zephyr/drivers/i2c.h>
 #include <zephyr/pm/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -27,7 +28,8 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
     COND_CODE_0(INST_DIODE_DIR(n), row2col_code, col2row_code)
 
 #define INST_ROWS_LEN(n) DT_INST_PROP_LEN(n, row_gpios)
-#define INST_COLS_LEN(n) DT_INST_PROP_LEN(n, col_gpios)
+//#define INST_COLS_LEN(n) DT_INST_PROP_LEN(n, col_gpios)
+#define INST_COLS_LEN(n) (16)
 #define INST_MATRIX_LEN(n) (INST_ROWS_LEN(n) * INST_COLS_LEN(n))
 #define INST_INPUTS_LEN(n) COND_DIODE_DIR(n, (INST_COLS_LEN(n)), (INST_ROWS_LEN(n)))
 
@@ -86,7 +88,6 @@ struct kscan_matrix_data {
 };
 
 struct kscan_matrix_config {
-    struct kscan_gpio_list outputs;
     struct zmk_debounce_config debounce_config;
     size_t rows;
     size_t cols;
@@ -94,6 +95,32 @@ struct kscan_matrix_config {
     int32_t poll_period_ms;
     enum kscan_diode_direction diode_direction;
 };
+
+#define I2C0_NODE DT_NODELABEL(ioexpander)
+static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C0_NODE);
+
+static inline int io_expander_select(uint8_t col) {
+    uint8_t data = 1 << (col > 7 ? col - 8 : col);
+    data = ~data;
+    int ret = -1;
+    if (col > 7) {
+        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+    } else {
+        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+    }
+    return ret;
+}
+
+static inline int io_expander_unselect(uint8_t col) {
+    uint8_t data = 0xff;
+    int ret = -1;
+    if (col > 7) {
+        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+    } else {
+        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+    }
+    return ret;
+}
 
 /**
  * Get the index into a matrix state array from a row and column.
@@ -116,16 +143,21 @@ static int state_index_io(const struct kscan_matrix_config *config, const int in
 }
 
 static int kscan_matrix_set_all_outputs(const struct device *dev, const int value) {
-    const struct kscan_matrix_config *config = dev->config;
-
-    for (int i = 0; i < config->outputs.len; i++) {
-        const struct gpio_dt_spec *gpio = &config->outputs.gpios[i].spec;
-
-        int err = gpio_pin_set_dt(gpio, value);
-        if (err) {
-            LOG_ERR("Failed to set output %i to %i: %i", i, value, err);
-            return err;
-        }
+    uint8_t data;
+    if (value) {
+        data = 0xff;
+    } else {
+        data = 0x00;
+    }
+    int err = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+    if (err) {
+        LOG_ERR("Failed to set i2c reg 0x03 to %i: %i", value, err);
+        return err;
+    }
+    err = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+    if (err) {
+        LOG_ERR("Failed to set i2c reg 0x02 to %i: %i", value, err);
+        return err;
     }
 
     return 0;
@@ -220,12 +252,13 @@ static int kscan_matrix_read(const struct device *dev) {
     const struct kscan_matrix_config *config = dev->config;
 
     // Scan the matrix.
-    for (int i = 0; i < config->outputs.len; i++) {
-        const struct kscan_gpio *out_gpio = &config->outputs.gpios[i];
+#define COL_COUNT 16
+    for (int i = 0; i < COL_COUNT; i++) {
+        int col_index = i;
 
-        int err = gpio_pin_set_dt(&out_gpio->spec, 1);
+        int err = io_expander_select(col_index);
         if (err) {
-            LOG_ERR("Failed to set output %i active: %i", out_gpio->index, err);
+            LOG_ERR("Failed to set output %i active: %i", col_index, err);
             return err;
         }
 
@@ -237,20 +270,19 @@ static int kscan_matrix_read(const struct device *dev) {
         for (int j = 0; j < data->inputs.len; j++) {
             const struct kscan_gpio *in_gpio = &data->inputs.gpios[j];
 
-            const int index = state_index_io(config, in_gpio->index, out_gpio->index);
+            const int index = state_index_io(config, in_gpio->index, col_index);
             const int active = kscan_gpio_pin_get(in_gpio, &state);
             if (active < 0) {
                 LOG_ERR("Failed to read port %s: %i", in_gpio->spec.port->name, active);
                 return active;
             }
-
             zmk_debounce_update(&data->matrix_state[index], active, config->debounce_scan_period_ms,
                                 &config->debounce_config);
         }
 
-        err = gpio_pin_set_dt(&out_gpio->spec, 0);
+        err = io_expander_unselect(col_index);
         if (err) {
-            LOG_ERR("Failed to set output %i inactive: %i", out_gpio->index, err);
+            LOG_ERR("Failed to set output %i inactive: %i", col_index, err);
             return err;
         }
 
@@ -392,16 +424,18 @@ static int kscan_matrix_init_output_inst(const struct device *dev,
 }
 
 static int kscan_matrix_init_outputs(const struct device *dev) {
-    const struct kscan_matrix_config *config = dev->config;
 
-    for (int i = 0; i < config->outputs.len; i++) {
-        const struct gpio_dt_spec *gpio = &config->outputs.gpios[i].spec;
-        int err = kscan_matrix_init_output_inst(dev, gpio);
-        if (err) {
-            return err;
-        }
+    if (!device_is_ready(dev_i2c.bus)) {
+        LOG_ERR("Failed to get I2C device binding\\n");
+        return -1;
     }
 
+    // Configure to output
+    i2c_reg_write_byte_dt(&dev_i2c, 0x06, 0x00);
+    i2c_reg_write_byte_dt(&dev_i2c, 0x07, 0x00);
+    i2c_reg_write_byte_dt(&dev_i2c, 0x03, 0xff);
+    i2c_reg_write_byte_dt(&dev_i2c, 0x02, 0xff);
+    LOG_INF("I2C initialized\\n");
     return 0;
 }
 
@@ -444,6 +478,7 @@ static void kscan_matrix_setup_pins(const struct device *dev) {
 }
 
 static int kscan_matrix_init(const struct device *dev) {
+    LOG_INF("kscan_matrix_init \\n");
     struct kscan_matrix_data *data = dev->data;
 
     data->dev = dev;
@@ -501,9 +536,6 @@ static const struct kscan_driver_api kscan_matrix_api = {
     static struct kscan_gpio kscan_matrix_rows_##n[] = {                                           \
         LISTIFY(INST_ROWS_LEN(n), KSCAN_GPIO_ROW_CFG_INIT, (, ), n)};                              \
                                                                                                    \
-    static struct kscan_gpio kscan_matrix_cols_##n[] = {                                           \
-        LISTIFY(INST_COLS_LEN(n), KSCAN_GPIO_COL_CFG_INIT, (, ), n)};                              \
-                                                                                                   \
     static struct zmk_debounce_state kscan_matrix_state_##n[INST_MATRIX_LEN(n)];                   \
                                                                                                    \
     COND_INTERRUPTS(                                                                               \
@@ -517,9 +549,7 @@ static const struct kscan_driver_api kscan_matrix_api = {
                                                                                                    \
     static const struct kscan_matrix_config kscan_matrix_config_##n = {                            \
         .rows = ARRAY_SIZE(kscan_matrix_rows_##n),                                                 \
-        .cols = ARRAY_SIZE(kscan_matrix_cols_##n),                                                 \
-        .outputs =                                                                                 \
-            KSCAN_GPIO_LIST(COND_DIODE_DIR(n, (kscan_matrix_rows_##n), (kscan_matrix_cols_##n))),  \
+        .cols = 16,                                                 \
         .debounce_config =                                                                         \
             {                                                                                      \
                 .debounce_press_ms = INST_DEBOUNCE_PRESS_MS(n),                                    \
