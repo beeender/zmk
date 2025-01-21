@@ -474,7 +474,7 @@ static int kscan_matrix_disconnect_outputs(const struct device *dev) {
 static void kscan_matrix_setup_pins(const struct device *dev) {
     kscan_matrix_init_inputs(dev);
     kscan_matrix_init_outputs(dev);
-    kscan_matrix_set_all_outputs(dev, 0);
+    kscan_matrix_set_all_outputs(dev, 1);
 }
 
 static int kscan_matrix_init(const struct device *dev) {
