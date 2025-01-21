@@ -5,6 +5,12 @@
 
 if BOARD_CHELIZI
 
+config ZMK_KEYBOARD_NAME
+    default "CheLiZi v2"
+
+config BT_DEVICE_NAME
+    default "CheLiZi v2"
+
 config BOARD
     default "chelizi"
 
