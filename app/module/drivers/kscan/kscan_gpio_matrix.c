@@ -98,15 +98,25 @@ struct kscan_matrix_config {
 
 #define I2C0_NODE DT_NODELABEL(ioexpander)
 static const struct i2c_dt_spec dev_i2c = I2C_DT_SPEC_GET(I2C0_NODE);
+// Since we cannot set I2C in the IRQ, save the current value to avoid setting
+// I2C too many times.
+static uint8_t i2c_data_1 = 0x00;
+static uint8_t i2c_data_2 = 0x00;
 
 static inline int io_expander_select(uint8_t col) {
     uint8_t data = 1 << (col > 7 ? col - 8 : col);
     data = ~data;
     int ret = -1;
     if (col > 7) {
-        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+        if (i2c_data_1 != data) {
+            ret = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+            i2c_data_1 = data;
+        }
     } else {
-        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+        if (i2c_data_2 != data) {
+            ret = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+            i2c_data_2 = data;
+        }
     }
     return ret;
 }
@@ -115,9 +125,15 @@ static inline int io_expander_unselect(uint8_t col) {
     uint8_t data = 0xff;
     int ret = -1;
     if (col > 7) {
-        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+        if (i2c_data_1 != data) {
+            ret = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+            i2c_data_1 = data;
+        }
     } else {
-        ret = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+        if (i2c_data_2 != data) {
+            ret = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+            i2c_data_2 = data;
+        }
     }
     return ret;
 }
@@ -142,22 +158,28 @@ static int state_index_io(const struct kscan_matrix_config *config, const int in
                : state_index_rc(config, input_idx, output_idx);
 }
 
-static int kscan_matrix_set_all_outputs(const struct device *dev, const int value) {
+static int kscan_matrix_set_all_outputs(const struct device *_, const int value) {
     uint8_t data;
     if (value) {
         data = 0xff;
     } else {
         data = 0x00;
     }
-    int err = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
-    if (err) {
-        LOG_ERR("Failed to set i2c reg 0x03 to %i: %i", value, err);
-        return err;
+    if (i2c_data_1 != data) {
+        int err = i2c_reg_write_byte_dt(&dev_i2c, 0x03, data);
+        if (err) {
+            LOG_ERR("Failed to set i2c reg 0x03 to %i: %i", value, err);
+            return err;
+        }
+        i2c_data_1 = data;
     }
-    err = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
-    if (err) {
-        LOG_ERR("Failed to set i2c reg 0x02 to %i: %i", value, err);
-        return err;
+    if (i2c_data_2 != data) {
+        int err = i2c_reg_write_byte_dt(&dev_i2c, 0x02, data);
+        if (err) {
+            LOG_ERR("Failed to set i2c reg 0x02 to %i: %i", value, err);
+            return err;
+        }
+        i2c_data_2 = data;
     }
 
     return 0;
@@ -190,7 +212,7 @@ static int kscan_matrix_interrupt_enable(const struct device *dev) {
 
     // While interrupts are enabled, set all outputs active so a pressed key
     // will trigger an interrupt.
-    return kscan_matrix_set_all_outputs(dev, 1);
+    return kscan_matrix_set_all_outputs(dev, 0);
 }
 #endif
 
@@ -203,7 +225,10 @@ static int kscan_matrix_interrupt_disable(const struct device *dev) {
 
     // While interrupts are disabled, set all outputs inactive so
     // kscan_matrix_read() can scan them one by one.
-    return kscan_matrix_set_all_outputs(dev, 0);
+    // NOTE: We cannot operate I2C in the IRQ handler. Instead, the output
+    // will be reset at the beginning of kscan_matrix_read.
+    //return kscan_matrix_set_all_outputs(dev, 1);
+    return 0;
 }
 #endif
 
@@ -250,6 +275,9 @@ static void kscan_matrix_read_end(const struct device *dev) {
 static int kscan_matrix_read(const struct device *dev) {
     struct kscan_matrix_data *data = dev->data;
     const struct kscan_matrix_config *config = dev->config;
+#if USE_INTERRUPTS
+    kscan_matrix_set_all_outputs(dev, 1);
+#endif
 
     // Scan the matrix.
 #define COL_COUNT 16
@@ -405,24 +433,6 @@ static int kscan_matrix_init_inputs(const struct device *dev) {
     return 0;
 }
 
-static int kscan_matrix_init_output_inst(const struct device *dev,
-                                         const struct gpio_dt_spec *gpio) {
-    if (!device_is_ready(gpio->port)) {
-        LOG_ERR("GPIO is not ready: %s", gpio->port->name);
-        return -ENODEV;
-    }
-
-    int err = gpio_pin_configure_dt(gpio, GPIO_OUTPUT);
-    if (err) {
-        LOG_ERR("Unable to configure pin %u on %s for output", gpio->pin, gpio->port->name);
-        return err;
-    }
-
-    LOG_DBG("Configured pin %u on %s for output", gpio->pin, gpio->port->name);
-
-    return 0;
-}
-
 static int kscan_matrix_init_outputs(const struct device *dev) {
 
     if (!device_is_ready(dev_i2c.bus)) {
@@ -435,7 +445,6 @@ static int kscan_matrix_init_outputs(const struct device *dev) {
     i2c_reg_write_byte_dt(&dev_i2c, 0x07, 0x00);
     i2c_reg_write_byte_dt(&dev_i2c, 0x03, 0xff);
     i2c_reg_write_byte_dt(&dev_i2c, 0x02, 0xff);
-    LOG_INF("I2C initialized\\n");
     return 0;
 }
 
@@ -478,7 +487,6 @@ static void kscan_matrix_setup_pins(const struct device *dev) {
 }
 
 static int kscan_matrix_init(const struct device *dev) {
-    LOG_INF("kscan_matrix_init \\n");
     struct kscan_matrix_data *data = dev->data;
 
     data->dev = dev;
