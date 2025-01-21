@@ -31,7 +31,7 @@ RC(6, 0) RC(6, 1) RC(6, 3)                            RC(6, 6)                  
         compatible = "zmk,kscan-gpio-matrix";
         wakeup-source;
         debounce-press-ms = <0>;
-        debounce-release-ms = <5>;
+        debounce-release-ms = <2>;
 
         diode-direction = "col2row";
         row-gpios
