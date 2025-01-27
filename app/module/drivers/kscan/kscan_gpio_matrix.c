@@ -443,8 +443,8 @@ static int kscan_matrix_init_outputs(const struct device *dev) {
     // Configure to output
     i2c_reg_write_byte_dt(&dev_i2c, 0x06, 0x00);
     i2c_reg_write_byte_dt(&dev_i2c, 0x07, 0x00);
-    i2c_reg_write_byte_dt(&dev_i2c, 0x03, 0xff);
-    i2c_reg_write_byte_dt(&dev_i2c, 0x02, 0xff);
+    i2c_reg_write_byte_dt(&dev_i2c, 0x03, 0x00);
+    i2c_reg_write_byte_dt(&dev_i2c, 0x02, 0x00);
     return 0;
 }
 
