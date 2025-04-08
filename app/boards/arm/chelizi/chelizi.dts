@@ -39,6 +39,13 @@
         output-ohms = <2000000>;
         full-ohms = <(2000000 + 820000)>;
     };
+
+    indicators {
+        compatible = "gpio-keys";
+        charge_ind {
+            gpios = <&gpio0 0 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+        };
+    };
 };
 
 &adc {
