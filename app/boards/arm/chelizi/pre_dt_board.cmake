@@ -7,3 +7,9 @@
 # https://docs.zephyrproject.org/latest/build/dts/intro-input-output.html
 
 list(APPEND EXTRA_DTC_FLAGS "-Wno-unique_unit_address_if_enabled")
+
+if (CHELIZI_EINK)
+    list(APPEND EXTRA_DTC_OVERLAY_FILE ${BOARD_DIR}/eink.overlay)
+else ()
+    list(APPEND EXTRA_DTC_OVERLAY_FILE ${BOARD_DIR}/led.overlay)
+endif()
