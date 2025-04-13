@@ -138,7 +138,7 @@ static int qyeg0213_write(const struct device *dev, const uint16_t x, const uint
             if (*buf_xy & BIT(bit)) {
                 disp_buf_black[idx] &= ~(0x80 >> (dest_y % 8));
             } else {
-                disp_buf_black[idx] &= 0xFF;
+                disp_buf_black[idx] |= (0x80 >> (dest_y % 8));
             }
         }
     }
