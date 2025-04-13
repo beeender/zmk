@@ -6,3 +6,7 @@
 config BOARD_CHELIZI
     bool "chelizi"
     depends on SOC_NRF52840_QIAA
+
+config BOARD_CHELIZI_EINK
+    bool "chelizi_eink"
+    depends on SOC_NRF52840_QIAA

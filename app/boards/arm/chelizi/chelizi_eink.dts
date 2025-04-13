@@ -17,6 +17,7 @@
         zephyr,code-partition = &code_partition;
         zephyr,sram = &sram0;
         zephyr,flash = &flash0;
+        zephyr,display = &display;
         zmk,battery = &vbatt;
     };
 
@@ -34,17 +35,19 @@
         };
     };
 
-    leds {
-        compatible = "gpio-leds";
-        led1: led_1 {
-            gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
-        };
-        led2: led_2 {
-            gpios = <&gpio0 30 GPIO_ACTIVE_HIGH>;
-        };
-        led3: led_3 {
-            gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
-        };
+    display: display {
+        compatible = "qiyun,qyeg0213";
+        status = "okay";
+        height = <122>;
+        width = <250>;
+
+        dc-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+        cs-gpios = <&gpio0 30 GPIO_ACTIVE_HIGH>;
+        sclk-gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+        sdi-gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+
+        busy-gpios = <&gpio0 10 GPIO_PULL_DOWN>;
     };
 };
 

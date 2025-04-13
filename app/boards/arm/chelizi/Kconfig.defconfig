@@ -2,9 +2,6 @@
 
 # Copyright (c) 2020 The ZMK Contributors
 # SPDX-License-Identifier: MIT
-
-if BOARD_CHELIZI
-
 config ZMK_KEYBOARD_NAME
     default "CheLiZi v2"
 
@@ -15,13 +12,26 @@ config BOARD
     default "chelizi"
 
 if USB_DEVICE_STACK
-
 config USB_NRFX
     default y
-
 endif # USB_DEVICE_STACK
 
 config BT_CTLR
     default BT
 
-endif # BOARD_CHELIZI
+if ZMK_DISPLAY
+config ZMK_DISPLAY
+    select LV_USE_LABEL
+    select LV_USE_IMG
+config ZMK_DISPLAY_BLANK_ON_IDLE
+    default n
+choice ZMK_DISPLAY_WORK_QUEUE
+    default ZMK_DISPLAY_WORK_QUEUE_DEDICATED
+endchoice
+choice ZMK_DISPLAY_STATUS_SCREEN
+    default ZMK_DISPLAY_STATUS_SCREEN_BUILT_IN
+endchoice
+endif # ZMK_DISPLAY
+
+config QYEG0213
+    default y

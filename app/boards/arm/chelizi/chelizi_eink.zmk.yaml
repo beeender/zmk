@@ -1,0 +1,8 @@
+file_format: "1"
+id: chelizi_eink
+name: CheLiZi eink v2
+type: board
+arch: arm
+outputs:
+  - usb
+  - ble
