@@ -23,6 +23,7 @@ if ZMK_DISPLAY
 config ZMK_DISPLAY
     select LV_USE_LABEL
     select LV_USE_IMG
+    select LV_FONT_MONTSERRAT_18
 config ZMK_DISPLAY_BLANK_ON_IDLE
     default n
 choice ZMK_DISPLAY_WORK_QUEUE
@@ -31,6 +32,14 @@ endchoice
 choice ZMK_DISPLAY_STATUS_SCREEN
     default ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
 endchoice
+
+config HEAP_MEM_POOL_SIZE
+    default 4096
+config LV_Z_MEM_POOL_SIZE
+    default 4096
+config ZMK_DISPLAY_DEDICATED_THREAD_STACK_SIZE
+    default 4096
+
 endif # ZMK_DISPLAY
 
 config QYEG0213
