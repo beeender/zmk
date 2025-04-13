@@ -1,0 +1,46 @@
+description: QiYun eink display driver.
+
+compatible: "qiyun,qyeg0213"
+
+include: base.yaml
+
+properties:
+  height:
+    type: int
+    required: true
+    description: Height in pixel of the panel driven by the controller
+
+  width:
+    type: int
+    required: true
+    description: Width in pixel of the panel driven by the controller
+
+  reset-gpios:
+    type: phandle-array
+    required: true
+    description: RESET pin.
+
+  dc-gpios:
+    type: phandle-array
+    required: true
+    description: DC pin.
+
+  busy-gpios:
+    type: phandle-array
+    required: true
+    description: BUSY pin.
+
+  sdi-gpios:
+    type: phandle-array
+    required: true
+    description: SPI sdi pin.
+
+  sclk-gpios:
+    type: phandle-array
+    required: true
+    description: SPI sclk pin.
+
+  cs-gpios:
+    type: phandle-array
+    required: true
+    description: SPI cs pin.

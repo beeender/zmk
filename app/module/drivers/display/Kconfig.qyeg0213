@@ -1,0 +1,4 @@
+config QYEG0213
+    bool "QiYun eink display controller driver"
+    help
+      Enable driver for QiYun eink display controller.
