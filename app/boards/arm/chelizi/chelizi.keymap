@@ -33,7 +33,7 @@
                 };
 
                 favorite_layer {
-                        display-name = "FAVORITE";
+                        display-name = "FAV";
                         bindings = <
 &kp ESC  &kp F1 &kp F2  &kp F3  &kp F4  &kp F5  &kp F6  &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12                        &kp PSCRN  &kp SLCK  &lt LWR PAUSE_BREAK
 &kp GRAVE  &kp N1    &kp N2   &kp N3  &kp N4  &kp N5  &kp N6  &kp N7  &kp N8    &kp N9   &kp N0    &kp MINUS &kp EQUAL &kp BSPC  &kp INS    &kp HOME  &kp PG_UP  &kp KP_NUM  &kp KP_SLASH  &kp KP_ASTERISK  &kp KP_MINUS
@@ -51,7 +51,7 @@
                   | CAPSLK | Toggle my favorite layer |
                  */
                 lower_layer {
-                        display-name = "CONTROL";
+                        display-name = "CTL";
                         bindings = <
 &sys_reset &bootloader  &out OUT_TOG        &kp F3  &kp F4  &kp F5  &kp F6  &kp F7  &kp F8  &kp F9  &kp F10  &kp F11  &kp F12                        &kp PSCRN  &kp SLCK  &kp PAUSE_BREAK
 &bt BT_CLR_ALL &bt BT_SEL 1 &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4 &bt BT_SEL 6 &kp N6  &kp N7  &kp N8    &kp N9   &kp N0    &kp MINUS &kp EQUAL &kp BSPC  &kp INS    &kp HOME  &kp PG_UP  &kp KP_NUM  &kp KP_SLASH  &kp KP_ASTERISK  &kp KP_MINUS
