@@ -22,6 +22,12 @@ struct lock_status_state {
 };
 
 static void set_lock_symbol(lv_obj_t *label, struct lock_status_state state) {
+    static zmk_hid_indicators_t prev_ind = { 0xff };
+
+    if (prev_ind == state.indicators) {
+        return;
+    }
+
     char status_str[20];
     char *nums_symbol = LV_SYMBOL_CLOSE;
     char *caps_symbol = LV_SYMBOL_CLOSE;
