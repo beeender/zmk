@@ -39,6 +39,7 @@ static void set_lock_symbol(lv_obj_t *label, struct lock_status_state state) {
     }
 
     snprintf(status_str, sizeof(status_str), "%s NUMS %s CAPS", nums_symbol, caps_symbol);
+    LOG_DBG("Lock status change");
     lv_label_set_text(label, status_str);
 }
 

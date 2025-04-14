@@ -24,6 +24,7 @@ struct layer_status_state {
 };
 
 static void set_layer_symbol(lv_obj_t *label, struct layer_status_state state) {
+    LOG_DBG("Layer status change");
     if (state.label == NULL || strlen(state.label) == 0) {
         char text[20] = {};
 

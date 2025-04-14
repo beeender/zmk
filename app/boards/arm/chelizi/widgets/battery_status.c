@@ -12,11 +12,12 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include <zmk/display.h>
 #include <zmk/battery.h>
-#include "battery_status.h"
 #include <zmk/usb.h>
 #include <zmk/events/usb_conn_state_changed.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/battery_state_changed.h>
+
+#include "battery_status.h"
 
 extern const lv_font_t *default_font;
 
@@ -47,10 +48,11 @@ static void set_battery_symbol(lv_obj_t *label, struct battery_status_state stat
     }
     char bat_str[20];
     if (state.usb_present) {
-        snprintf(bat_str, 20, "%s BAT %s %d", icon_str, LV_SYMBOL_CHARGE, level);
+        snprintf(bat_str, 20, "%s BAT %s %d%%", icon_str, LV_SYMBOL_CHARGE, level);
     } else {
-        snprintf(bat_str, 20, "%s BAT %d", icon_str, level);
+        snprintf(bat_str, 20, "%s BAT %d%%", icon_str, level);
     }
+    LOG_DBG("Battery change");
     lv_label_set_text(label, bat_str);
 #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
 }
