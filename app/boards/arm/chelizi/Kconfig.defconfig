@@ -24,6 +24,7 @@ config ZMK_DISPLAY
     select LV_USE_LABEL
     select LV_USE_IMG
     select LV_FONT_MONTSERRAT_18
+    select LV_FONT_MONTSERRAT_12
 config ZMK_DISPLAY_BLANK_ON_IDLE
     default n
 choice ZMK_DISPLAY_WORK_QUEUE

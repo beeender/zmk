@@ -35,23 +35,22 @@ static void set_battery_symbol(lv_obj_t *label, struct battery_status_state stat
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
     char *icon_str;
     if (level > 95) {
-        icon_str = state.usb_present ?
-            LV_SYMBOL_BATTERY_FULL LV_SYMBOL_CHARGE : LV_SYMBOL_BATTERY_FULL;
+        icon_str = LV_SYMBOL_BATTERY_FULL;
     } else if (level > 75) {
-        icon_str = state.usb_present ?
-            LV_SYMBOL_BATTERY_3 LV_SYMBOL_CHARGE : LV_SYMBOL_BATTERY_3;
+        icon_str = LV_SYMBOL_BATTERY_3;
     } else if (level > 45) {
-        icon_str = state.usb_present ?
-            LV_SYMBOL_BATTERY_2 LV_SYMBOL_CHARGE : LV_SYMBOL_BATTERY_2;
+        icon_str = LV_SYMBOL_BATTERY_2;
     } else if (level > 15) {
-        icon_str = state.usb_present ?
-            LV_SYMBOL_BATTERY_1 LV_SYMBOL_CHARGE : LV_SYMBOL_BATTERY_1;
+        icon_str = LV_SYMBOL_BATTERY_1;
     } else {
-        icon_str = state.usb_present ?
-            LV_SYMBOL_BATTERY_EMPTY LV_SYMBOL_CHARGE : LV_SYMBOL_BATTERY_EMPTY;
+        icon_str = LV_SYMBOL_BATTERY_EMPTY;
     }
     char bat_str[20];
-    snprintf(bat_str, 20, "%s%d", icon_str, level);
+    if (state.usb_present) {
+        snprintf(bat_str, 20, "%s BAT %s %d", icon_str, LV_SYMBOL_CHARGE, level);
+    } else {
+        snprintf(bat_str, 20, "%s BAT %d", icon_str, level);
+    }
     lv_label_set_text(label, bat_str);
 #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
 }
