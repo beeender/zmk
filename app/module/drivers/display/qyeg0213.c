@@ -12,6 +12,7 @@ LOG_MODULE_REGISTER(qyeg0213, CONFIG_DISPLAY_LOG_LEVEL);
 #define PANEL_HEIGHT DT_INST_PROP(0, height)
 
 #define MAX_LINE_BYTES 16 // =128/8
+#define ALLSCREEN_GRAGHBYTES (PANEL_WIDTH * MAX_LINE_BYTES)
 
 struct qyeg0213_cfg {
     struct gpio_dt_spec dc;
@@ -53,7 +54,6 @@ struct qyeg0213_cfg {
 #define EPD_W21_RST_0 CLEAR(cfg->reset)
 #define EPD_W21_RST_1 SET(cfg->reset)
 
-#define ALLSCREEN_GRAGHBYTES 4000
 static bool blanking_on = true;
 static uint8_t disp_buf_black[ALLSCREEN_GRAGHBYTES];
 
@@ -134,6 +134,9 @@ static int qyeg0213_write(const struct device *dev, const uint16_t x, const uint
             uint8_t bit = buf_x % 8;
 
             size_t idx = dest_x * MAX_LINE_BYTES + dest_y / 8;
+
+            // FIXME: Why should this happen
+            if (idx >= sizeof(disp_buf_black)) break;
 
             if (*buf_xy & BIT(bit)) {
                 disp_buf_black[idx] &= ~(0x80 >> (dest_y % 8));
