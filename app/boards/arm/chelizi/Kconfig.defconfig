@@ -42,3 +42,6 @@ endif # ZMK_DISPLAY
 
 config QYEG0213
     default y
+
+config ZMK_BATTERY_REPORT_INTERVAL
+    default 300
