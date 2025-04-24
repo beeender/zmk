@@ -31,7 +31,14 @@ struct battery_status_state {
 };
 
 static void set_battery_symbol(lv_obj_t *label, struct battery_status_state state) {
+    static uint8_t pre_level = 100;
     uint8_t level = state.level;
+
+    // To avoid refresh the eink display frequently.
+    if (!state.usb_present && level >= pre_level) {
+        return;
+    }
+    pre_level = level;
 
 #if IS_ENABLED(CONFIG_USB_DEVICE_STACK)
     char *icon_str;
@@ -47,7 +54,6 @@ static void set_battery_symbol(lv_obj_t *label, struct battery_status_state stat
         icon_str = LV_SYMBOL_BATTERY_EMPTY;
     }
 
-    static char pre_bat_str[20];
     char bat_str[20];
 
     if (state.usb_present) {
@@ -56,10 +62,7 @@ static void set_battery_symbol(lv_obj_t *label, struct battery_status_state stat
         snprintf(bat_str, 20, "%s BAT %d%%", icon_str, level);
     }
     LOG_DBG("Battery change");
-    if (memcmp(pre_bat_str, bat_str, 20)) {
-        lv_label_set_text(label, bat_str);
-        memcpy(pre_bat_str, bat_str, 20);
-    }
+    lv_label_set_text(label, bat_str);
 #endif /* IS_ENABLED(CONFIG_USB_DEVICE_STACK) */
 }
 
